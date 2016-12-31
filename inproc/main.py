@@ -4,20 +4,24 @@ import threading
 
 from wecker import *
 from rentier import *
+from santa import *
 
 zmqContext = zmq.Context.instance()
 
 weckerThread = threading.Thread(target=wecker, args=(zmqContext,))
 weckerThread.start()
 
-
 time.sleep(0.5)
 
 rentierThreads = []
-for iA in range (10):
+for iA in range (9):
     rentierThreads += [threading.Thread(target=rentier, args=(zmqContext,"Rudolf"+str(iA)))]
     rentierThreads[-1].start()
-    time.sleep(0.1)
+
+time.sleep(0.5)
+
+santaThread = threading.Thread(target=santa, args=(zmqContext,))
+santaThread.start()
 
 
 time.sleep(5)
