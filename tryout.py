@@ -2,23 +2,24 @@ import threading
 import zmq
 import time
 
-def sender (context):
-    senderSocket = context.socket(zmq.PAIR)
+def replier (context):
+    senderSocket = context.socket(zmq.REP)
     #senderSocket.bind("tcp://*:5555")
     senderSocket.bind("inproc://meinKanal")
-    senderSocket.send_string("Hello World")
+    print(senderSocket.recv())
 
-def receiver (context):
-    recvSocket = context.socket(zmq.PAIR)
+def requester (context):
+    recvSocket = context.socket(zmq.REQ)
     #recvSocket.connect("tcp://localhost:5555")
     recvSocket.connect("inproc://meinKanal")
-    print(recvSocket.recv())
+    recvSocket.send_string("Hello World")
 
 zmqContext = zmq.Context.instance()
 
-sThread = threading.Thread(target=sender, args=(zmqContext,))
+sThread = threading.Thread(target=replier, args=(zmqContext,))
 sThread.start()
-rThread = threading.Thread(target=receiver, args=(zmqContext,))
+time.sleep(1)
+rThread = threading.Thread(target=requester, args=(zmqContext,))
 rThread.start()
 
 time.sleep(3)
