@@ -5,6 +5,7 @@ import threading
 from wecker import *
 from rentier import *
 from santa import *
+from elf import *
 
 zmqContext = zmq.Context.instance()
 
@@ -13,8 +14,13 @@ weckerThread.start()
 
 rentierThreads = []
 for iA in range (9):
-    rentierThreads += [threading.Thread(target=rentier, args=(zmqContext,"Rudolf"+str(iA)))]
+    rentierThreads += [threading.Thread(target=rentier, args=(zmqContext,"rudolf"+str(iA)))]
     rentierThreads[-1].start()
+
+elfThreads = []
+for iA in range (9):
+    elfThreads += [threading.Thread(target=elf, args=(zmqContext,"elfine"+str(iA)))]
+    elfThreads[-1].start()
 
 santaThread = threading.Thread(target=santa, args=(zmqContext,))
 santaThread.start()
@@ -27,7 +33,6 @@ print()
 while (True):
     consolePublisher.send_string(input())
 
-
-time.sleep(5)
-zmqContext.term()
+print("===============================================")
 print("stopped.")
+zmqContext.term()

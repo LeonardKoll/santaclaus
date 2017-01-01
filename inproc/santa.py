@@ -7,7 +7,7 @@ def santa(context):
     pair.connect("inproc://weckerAlarm")
 
     publisher = context.socket(zmq.PUSH)
-    publisher.bind("inproc://rentierOrders")
+    publisher.bind("inproc://santaSag")
 
     while(True):
 

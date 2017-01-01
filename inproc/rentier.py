@@ -1,5 +1,4 @@
 import zmq
-import time
 
 def rentier(context, name):
 
@@ -7,7 +6,7 @@ def rentier(context, name):
     publisher.connect("inproc://weckerAnmeldung")
 
     subscriber = context.socket(zmq.SUB)
-    subscriber.connect("inproc://rentierOrders")
+    subscriber.connect("inproc://santaSag")
     subscriber.subscribe(name)          # Rentier hört auf seinen Namen
     subscriber.subscribe("rentiere")    # ... und alternativ auf "rentiere"
 
@@ -47,12 +46,23 @@ def rentier(context, name):
                 else:
                     amLaufen = False
                     imUrlaub = True
+                    publisher.send_string("abgereist " + name)
+                    # nicht mehr in Hoerweite
+                    subscriber.unsubscribe(name)          # Rentier hört auf seinen Namen
+                    subscriber.unsubscribe("rentiere")    # ... und alternativ auf "rentiere"
 
         if console in socks and socks[console] == zmq.POLLIN:
             message = str(console.recv(),'utf-8').split(' ')
             if   (message[1] == "home"):
                 imUrlaub = False
                 publisher.send_string("eingetroffen " + name)
+                # wieder in Hoerweite
+                subscriber.subscribe(name)          # Rentier hört auf seinen Namen
+                subscriber.subscribe("rentiere")    # ... und alternativ auf "rentiere"
             elif (message[1] == "holiday"):
+                amLaufen = False
                 imUrlaub = True
                 publisher.send_string("abgereist " + name)
+                # nicht mehr in Hoerweite
+                subscriber.unsubscribe(name)          # Rentier hört auf seinen Namen
+                subscriber.unsubscribe("rentiere")    # ... und alternativ auf "rentiere"
