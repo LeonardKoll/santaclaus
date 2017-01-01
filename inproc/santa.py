@@ -1,62 +1,108 @@
 import zmq
+import time
+import threading
 
 
-def santa(context):
 
-    pair = context.socket(zmq.PAIR)
-    pair.connect("inproc://weckerAlarm")
+class Santa (threading.Thread):
 
-    publisher = context.socket(zmq.PUB)
-    publisher.bind("inproc://santaSag")
+    def __init__(self, context, anzElfen):
 
-    router = context.socket(zmq.ROUTER)
-    router.bind("inproc://elfenTalk")
+        threading.Thread.__init__(self)
 
-    ###########################################################################
+        self.pair = context.socket(zmq.PAIR)
+        self.publisher = context.socket(zmq.PUB)
+        self.router = context.socket(zmq.ROUTER)
+        self.console = context.socket(zmq.SUB)
 
-    console = context.socket(zmq.SUB)
-    console.connect("inproc://console")
-    console.subscribe("santa")
+        self.istWach = False
+        self.anzElfen = anzElfen
+        self.elfenAnswers = anzElfen
 
-    poller = zmq.Poller()
-    poller.register(subscriber, zmq.POLLIN)
-    poller.register(console, zmq.POLLIN)
-    poller.register(router, zmq.POLLIN)
 
-    ###########################################################################
+    def _configure_ (self):
 
-    istWach = False
+        self.pair.connect("inproc://weckerAlarm")
+        self.publisher.bind("inproc://santaSag")
+        self.router.bind("inproc://elfenTalk")
+        self.console.connect("inproc://console")
 
-    while(True):
+        self.console.subscribe("santa")
 
-        socks = dict(poller.poll())
-        message=""
-        if pair in socks and socks[pair] == zmq.POLLIN:
-            message = str(pair.recv(),'utf-8').split(' ')
-        elif console in socks and socks[console] == zmq.POLLIN:
-            message = str(console.recv(),'utf-8').split(' ')
+        self.poller = zmq.Poller()
+        self.poller.register(self.pair, zmq.POLLIN)
+        self.poller.register(self.console, zmq.POLLIN)
+        self.poller.register(self.router, zmq.POLLIN)
 
-            if   (message[1] == "sag"):
-                toSend = ' '.join(message[2:-1])
-                publisher.send_string(toSend)
-            elif (message[1] == "aufwachen!")
-                istWach = True
-                console.subscribe("santa")
-                if  (message[2] == "xmas"):
-                    publisher.send_string("rentiere einspannen")
-                    publisher.send_string("rentiere zisch") # loslaufen
-                    publisher.send_string("rentiere zisch") # stehenbleiben
-                    publisher.send_string("rentiere ausspannen")
-                    publisher.send_string("rentiere zisch") # Karibik
-                elif (message[2] = "probleme"):
-                    publisher.send_string("elfen werbrauchthilfe?")
-            elif (message[1] == "einschlafen"):
-                istWach = False                     # wenn santa schläft ...
-                subscriber.unsubscribe("santa")     # ... kann er auch nicht zuhören
+    def _geschenkeAusliefern_(self):
+        print("Santa: Ich liefere jetzt Geschenke aus.")
+        self.publisher.send_string("rentiere einspannen")
+        time.sleep(0.1)
+        self.publisher.send_string("rentiere zisch") # loslaufen
+        time.sleep(0.1)
+        self.publisher.send_string("rentiere zisch") # stehenbleiben
+        time.sleep(0.1)
+        self.publisher.send_string("rentiere ausspannen")
+        time.sleep(0.1)
+        self.publisher.send_string("rentiere zisch") # Karibik
+        time.sleep(0.1)
+        print("Santa: Ich bin fertig mit Ausliefern.")
 
-        elif router in socks and socks[router] == zmq.POLLIN:
-            # Elfentalk Kommunikation muss hier wg den Eigenheiten des ROUTER Sockets separat gehandhabt werden.
-            address, empty, message = router.recv_multipart()
-            senderSocket.send_multipart([address,b'',b'dummenuss machsanders'])
-            # dummenuss steht hier, damit beim elf das 'machsanders' in message[1] steht.
-            # Andernfalls muesste man die elfenTalk Kommunikation separat handahaben (Aufwand)
+    def _aufwachen_(self):
+        if (not self.istWach):
+            print("Santa: Ich bin aufgewacht.")
+            self.istWach = True
+            self.console.subscribe("santa")
+
+    def _einschlafen_(self):
+        if (self.istWach):
+            print("Santa: Ich gehe jetzt schlafen.")
+            self.istWach = False                     # wenn santa schläft ...
+            self.console.unsubscribe("santa")     # ... kann er auch nicht zuhören
+
+    def run(self):
+
+        self._configure_()
+
+        while(True):
+
+            socks = dict(self.poller.poll())
+            message=[]
+            if self.pair in socks and socks[self.pair] == zmq.POLLIN:
+                message = str(self.pair.recv(),'utf-8').split(' ')
+
+                if (message[1] == "aufwachen" and not self.istWach):
+                    self._aufwachen_()
+                    if  (message[2] == "xmas"):
+                        self._geschenkeAusliefern_()
+                        self._einschlafen_()
+                    elif (message[2] == "probleme" and self.elfenAnswers == self.anzElfen):
+                        print("Santa: Wer braucht hilfe?")
+                        self.publisher.send_string("elfen werbrauchthilfe?")
+                        self.elfenAnswers = 0
+
+            elif self.console in socks and socks[self.console] == zmq.POLLIN:
+                message = str(self.console.recv(),'utf-8').split(' ')
+
+                if   (message[1] == "einschlafen"):
+                    self._einschlafen_()
+                elif (message[1] == "sag"):
+                    message += [""]
+                    toSend = ' '.join(message[2:-1])
+                    self.publisher.send_string(toSend)
+
+
+            elif self.router in socks and socks[self.router] == zmq.POLLIN:
+                address, empty, message = self.router.recv_multipart()
+                message = str(message,'utf-8').split(' ')
+
+                if   (message[0] == "ichbrauchhilfe"):
+                    print("Santa: Ich helfe " + message[1])
+                    self.router.send_multipart([address,b'',b'machsanders'])
+                    self.elfenAnswers += 1
+                elif (message[0] == "ichnicht"):
+                    self.router.send_multipart([address,b'',b'ok'])
+                    self.elfenAnswers += 1
+
+            if (self.elfenAnswers >= self.anzElfen):
+                self._einschlafen_()

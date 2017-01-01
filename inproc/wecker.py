@@ -26,6 +26,9 @@ def wecker(context):
             hilfsbeduerftigeElfen.remove(message[1])
 
         if   (len(anwesendeRentiere) >= 9):
-            pair.send_string("aufwachen! xmas")
+            print("Wecker: riiiiiiiiiiing; Weihnachten")
+            pair.send_string("schnarchnase aufwachen xmas")
+            # schnarchnase steht hier, damit beim santa das 'aufwachen!' in message[1] steht.
         elif (len(hilfsbeduerftigeElfen) >= 3):
-            pair.send_string("aufwachen! probleme")
+            print("Wecker: riiiiiiiiiiing; Probleme")
+            pair.send_string("schnarchnase aufwachen probleme")

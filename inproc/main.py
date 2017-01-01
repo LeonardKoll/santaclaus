@@ -12,18 +12,18 @@ zmqContext = zmq.Context.instance()
 weckerThread = threading.Thread(target=wecker, args=(zmqContext,), name="wecker")
 weckerThread.start()
 
+santaThread = Santa(zmqContext, 12)
+santaThread.start()
+
 rentierThreads = []
 for iA in range (9):
-    rentierThreads += [threading.Thread(target=rentier, args=(zmqContext,"rudolf"+str(iA)), name="rudolf"+str(iA))]
+    rentierThreads += [Rentier(zmqContext, "rudolf"+str(iA))]
     rentierThreads[-1].start()
 
 elfThreads = []
-for iA in range (9):
-    elfThreads += [threading.Thread(target=elf, args=(zmqContext,"elfine"+str(iA)), name="elfine"+str(iA))]
+for iA in range (12):
+    elfThreads += [Elf(zmqContext, "elfine"+str(iA))]
     elfThreads[-1].start()
-
-santaThread = threading.Thread(target=santa, args=(zmqContext,), name="santa")
-santaThread.start()
 
 consolePublisher = zmqContext.socket(zmq.PUB)
 consolePublisher.bind("inproc://console")
