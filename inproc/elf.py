@@ -8,7 +8,10 @@ def elf(context, name):
     subscriber = context.socket(zmq.SUB)
     subscriber.connect("inproc://santaSag")
     subscriber.subscribe(name)          # Rentier hört auf seinen Namen
-    subscriber.subscribe("elfen")    # ... und alternativ auf "elfen"
+    subscriber.subscribe("elfen")       # ... und alternativ auf "elfen"
+
+    requester = context.socket(zmq.REQ)
+    subscriber.connect("inproc://elfenTalk")
 
     ###########################################################################
 
@@ -20,6 +23,7 @@ def elf(context, name):
     poller = zmq.Poller()
     poller.register(subscriber, zmq.POLLIN)
     poller.register(console, zmq.POLLIN)
+    poller.register(requester, zmq.POLLIN)
 
     ###########################################################################
 
@@ -28,19 +32,20 @@ def elf(context, name):
     while (True):
 
         socks = dict(poller.poll())
+        message=""
         if subscriber in socks and socks[subscriber] == zmq.POLLIN:
-
             message = str(subscriber.recv(),'utf-8').split(' ')
-            if (message[1] == "machsanders"):
-                hatProblem = False
-                publisher.send_string("problemgeloest " + name)
-
-        if console in socks and socks[console] == zmq.POLLIN:
-
+        elif console in socks and socks[console] == zmq.POLLIN:
             message = str(console.recv(),'utf-8').split(' ')
-            if   (message[1] == "problem"):
-                hatProblem = True
-                publisher.send_string("hilfegesuch " + name)
-            elif (message[1] == "arbeite"):
-                hatProblem = False
-                publisher.send_string("problemgeloest " + name)
+        elif requester in socks and socks[requester] == zmq.POLLIN:
+            message = str(requester.recv(),'utf-8').split(' ')
+
+        if   (message[1] == "problem"):
+            hatProblem = True
+            publisher.send_string("hilfegesuch " + name)
+        elif (message[1] == "werbrauchthilfe?"):
+            if (hatProblem):
+                requester.send_string("ichbrauchhilfe " + name)
+        elif ((message[1] == "arbeite") or (message[1] == "machsanders")):
+            hatProblem = False
+            publisher.send_string("problemgeloest " + name)

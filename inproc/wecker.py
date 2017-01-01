@@ -25,5 +25,7 @@ def wecker(context):
         elif (message[0] == "problemgeloest"):
             hilfsbeduerftigeElfen.remove(message[1])
 
-        if ((len(anwesendeRentiere) >= 9) or (len(hilfsbeduerftigeElfen) >= 3)):
-            pair.send_string("aufwachen!")
+        if   (len(anwesendeRentiere) >= 9):
+            pair.send_string("aufwachen! xmas")
+        elif (len(hilfsbeduerftigeElfen) >= 3):
+            pair.send_string("aufwachen! probleme")
