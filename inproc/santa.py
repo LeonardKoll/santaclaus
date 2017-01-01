@@ -13,7 +13,6 @@ class Santa (threading.Thread):
         self.pair = context.socket(zmq.PAIR)
         self.publisher = context.socket(zmq.PUB)
         self.router = context.socket(zmq.ROUTER)
-        self.console = context.socket(zmq.SUB)
 
         self.istWach = False
         self.anzElfen = anzElfen
@@ -25,13 +24,9 @@ class Santa (threading.Thread):
         self.pair.connect("inproc://weckerAlarm")
         self.publisher.bind("inproc://santaSag")
         self.router.bind("inproc://elfenTalk")
-        self.console.connect("inproc://console")
-
-        self.console.subscribe("santa")
 
         self.poller = zmq.Poller()
         self.poller.register(self.pair, zmq.POLLIN)
-        self.poller.register(self.console, zmq.POLLIN)
         self.poller.register(self.router, zmq.POLLIN)
 
     def _geschenkeAusliefern_(self):
@@ -52,13 +47,11 @@ class Santa (threading.Thread):
         if (not self.istWach):
             print("Santa: Ich bin aufgewacht.")
             self.istWach = True
-            self.console.subscribe("santa")
 
     def _einschlafen_(self):
         if (self.istWach):
             print("Santa: Ich gehe jetzt schlafen.")
-            self.istWach = False                     # wenn santa schläft ...
-            self.console.unsubscribe("santa")     # ... kann er auch nicht zuhören
+            self.istWach = False
 
     def run(self):
 
@@ -80,17 +73,6 @@ class Santa (threading.Thread):
                         print("Santa: Wer braucht hilfe?")
                         self.publisher.send_string("elfen werbrauchthilfe?")
                         self.elfenAnswers = 0
-
-            elif self.console in socks and socks[self.console] == zmq.POLLIN:
-                message = str(self.console.recv(),'utf-8').split(' ')
-
-                if   (message[1] == "einschlafen"):
-                    self._einschlafen_()
-                elif (message[1] == "sag"):
-                    message += [""]
-                    toSend = ' '.join(message[2:-1])
-                    self.publisher.send_string(toSend)
-
 
             elif self.router in socks and socks[self.router] == zmq.POLLIN:
                 address, empty, message = self.router.recv_multipart()
