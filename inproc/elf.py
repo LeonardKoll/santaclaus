@@ -45,7 +45,9 @@ def elf(context, name):
             publisher.send_string("hilfegesuch " + name)
         elif (message[1] == "werbrauchthilfe?"):
             if (hatProblem):
-                requester.send_string("ichbrauchhilfe " + name)
+                requester.send_string("santa ichbrauchhilfe ")
+                # '-> Nicht noetig, den Namen der Elfe anzugeben.
+                #     Santa kann sie ueber ihren Socket identifizieren.
         elif ((message[1] == "arbeite") or (message[1] == "machsanders")):
             hatProblem = False
             publisher.send_string("problemgeloest " + name)
